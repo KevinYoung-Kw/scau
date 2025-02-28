@@ -58,11 +58,12 @@ interface SortableItemProps {
   id: string;
   index: number;
   name: string;
+  isSpecial: boolean;
   onRemove: () => void;
 }
 
 // 可排序的志愿项组件
-const SortableItem: React.FC<SortableItemProps> = ({ id, index, name, onRemove }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, index, name, isSpecial, onRemove }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   
   const style = {
@@ -82,7 +83,14 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, index, name, onRemove }
         <div className="bg-primary-100 text-primary-600 font-bold rounded-full w-7 h-7 flex items-center justify-center mr-3">
           {index + 1}
         </div>
-        <span className="font-medium text-gray-800">{name}</span>
+        <div>
+          <span className="font-medium text-gray-800">{name}</span>
+          {isSpecial && (
+            <span className="ml-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
+              特招
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center">
         <button 
@@ -107,10 +115,21 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, index, name, onRemove }
 
 const VolunteerSelection: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'normal' | 'special'>('normal');
-  const [selectedDepartments, setSelectedDepartments] = useState<Array<{id: string, name: string, type: 'normal' | 'special'}>>([]);
+  const [selectedDepartments, setSelectedDepartments] = useState<Array<{
+    id: string, 
+    name: string, 
+    isSpecial: boolean
+  }>>([]);
   const { student } = useRecruitment();
   
+  // 模拟用户信息，实际中应从 context 或 API 获取
+  const [userInfo] = useState({
+    studentId: '202301001',
+    name: '张三',
+    major: '计算机科学与技术',
+    college: '信息学院'
+  });
+
   // 设置拖拽传感器
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -133,8 +152,17 @@ const VolunteerSelection: React.FC = () => {
     }
   };
 
+  // 检查用户是否符合特招条件
+  const checkSpecialEligibility = (deptId: string) => {
+    const dept = departments.find(d => d.id === deptId);
+    if (!dept || !dept.specialRecruitment.available) return false;
+    
+    const { eligibleMajors, eligibleColleges } = dept.specialRecruitment;
+    return eligibleMajors.includes(userInfo.major) || eligibleColleges.includes(userInfo.college);
+  };
+
   // 添加志愿
-  const addDepartment = (deptId: string, deptName: string) => {
+  const addDepartment = (deptId: string, deptName: string, isSpecial: boolean) => {
     // 检查是否已经添加过
     const alreadySelected = selectedDepartments.some(dept => dept.id === deptId);
     if (alreadySelected) {
@@ -143,8 +171,13 @@ const VolunteerSelection: React.FC = () => {
     
     // 检查是否已达到志愿上限
     if (selectedDepartments.length >= 2) {
-      // 使用原生alert替代，实际应用中可使用更美观的提示组件
       alert('最多只能选择2个志愿');
+      return;
+    }
+
+    // 如果选择特招，需要检查是否符合条件
+    if (isSpecial && !checkSpecialEligibility(deptId)) {
+      alert('您不符合该部门特招条件');
       return;
     }
     
@@ -154,7 +187,7 @@ const VolunteerSelection: React.FC = () => {
       {
         id: deptId,
         name: deptName,
-        type: activeTab
+        isSpecial: isSpecial
       }
     ]);
   };
@@ -170,9 +203,13 @@ const VolunteerSelection: React.FC = () => {
       alert('请至少选择一个志愿');
       return;
     }
+
+    // 预测面试方式
+    const allSpecial = selectedDepartments.every(dept => dept.isSpecial);
+    const interviewMethod = allSpecial ? "特招面试" : "联合面试";
     
     // 模拟提交确认
-    const confirmed = window.confirm(`确认提交${selectedDepartments.length}个志愿？提交后将不能修改！`);
+    const confirmed = window.confirm(`您选择的志愿包含${selectedDepartments.some(d => d.isSpecial) ? '特招部门，' : ''}将参加${interviewMethod}。确认提交吗？`);
     if (confirmed) {
       // 模拟提交操作，显示加载状态
       const loadingToast = document.createElement('div');
@@ -194,30 +231,16 @@ const VolunteerSelection: React.FC = () => {
     }
   };
 
-  // 检查是否可以选择某个部门
-  const canSelectDepartment = (deptId: string, deptHasSpecial: boolean) => {
-    // 如果是特招标签，但部门没有特招通道
-    if (activeTab === 'special' && !deptHasSpecial) {
-      return false;
-    }
-    
-    // 如果已经选了这个部门
-    if (selectedDepartments.some(d => d.id === deptId)) {
-      return false;
-    }
-    
-    // 如果已经选了特招部门，不能再选普通部门
-    if (activeTab === 'normal' && selectedDepartments.some(d => d.type === 'special')) {
-      return false;
-    }
-    
-    // 如果已经选了普通部门，不能再选特招部门
-    if (activeTab === 'special' && selectedDepartments.some(d => d.type === 'normal')) {
-      return false;
-    }
-    
+  // 部门列表，根据是否有特招资格过滤
+  const filteredDepartments = departments.filter(dept => {
+    // 所有部门都可以正常报名
     return true;
-  };
+  });
+
+  // 当前部门有特招资格的部门列表
+  const eligibleSpecialDepts = departments.filter(dept => 
+    dept.specialRecruitment.available && checkSpecialEligibility(dept.id)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -235,13 +258,21 @@ const VolunteerSelection: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-medium text-gray-800 mb-1">志愿填报说明</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mb-2">
                   请最多选择2个志愿部门，可通过<span className="text-primary-600 font-medium">拖拽调整志愿顺序</span>。第一志愿录取优先级更高。
                 </p>
-                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-100 rounded-md">
-                  <p className="text-xs text-yellow-700">
-                    <span className="font-medium">特别提醒：</span>
-                    特招通道与普通招新互斥，一旦选择特招部门则不能再选普通部门。
+                {eligibleSpecialDepts.length > 0 && (
+                  <div className="p-2 bg-yellow-50 border border-yellow-100 rounded-md mb-2">
+                    <p className="text-xs text-yellow-700">
+                      <span className="font-medium">特招资格提示：</span>
+                      您符合 {eligibleSpecialDepts.map(d => d.name).join('、')} 的特招条件。
+                    </p>
+                  </div>
+                )}
+                <div className="p-2 bg-blue-50 border border-blue-100 rounded-md">
+                  <p className="text-xs text-blue-700">
+                    <span className="font-medium">面试说明：</span>
+                    如果您的志愿均为特招且符合条件，将直接参加特招面试；否则需参加联合面试。
                   </p>
                 </div>
               </div>
@@ -274,7 +305,8 @@ const VolunteerSelection: React.FC = () => {
                       key={dept.id}
                       id={dept.id}
                       index={index}
-                      name={`${dept.name} ${dept.type === 'special' ? '(特招)' : ''}`}
+                      name={dept.name}
+                      isSpecial={dept.isSpecial}
                       onRemove={() => removeDepartment(dept.id)}
                     />
                   ))}
@@ -300,114 +332,108 @@ const VolunteerSelection: React.FC = () => {
         
         {/* 部门选择区 */}
         <Card elevated className="mb-6">
-          <div className="flex border-b">
-            <button
-              className={`flex-1 py-3 text-center font-medium transition-colors ${
-                activeTab === 'normal' 
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('normal')}
-            >
-              普通招新
-            </button>
-            <button
-              className={`flex-1 py-3 text-center font-medium transition-colors ${
-                activeTab === 'special' 
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('special')}
-            >
-              特招通道
-            </button>
-          </div>
-          
           <Card.Body>
-            {activeTab === 'normal' ? (
-              <div>
-                <p className="text-sm text-gray-600 mb-4">
-                  选择你喜欢的部门，最多可选择2个
-                </p>
-                <div className="space-y-3">
-                  {departments.map((dept) => {
-                    const isDisabled = !canSelectDepartment(dept.id, dept.specialRecruitment.available);
-                    return (
-                      <button
-                        key={dept.id}
-                        onClick={() => !isDisabled && addDepartment(dept.id, dept.name)}
-                        className={`w-full text-left px-4 py-3 border rounded-lg transition-all ${
-                          isDisabled
-                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                            : 'border-gray-200 hover:border-primary-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500'
-                        }`}
-                        disabled={isDisabled}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-800'}`}>{dept.name}</span>
-                          {selectedDepartments.some(d => d.id === dept.id) ? (
-                            <svg className="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm text-gray-600 mb-4">
-                  特招通道需满足部门特定要求，一旦选择特招将不能选择普通招新
-                </p>
-                <div className="space-y-3">
-                  {departments.filter(dept => dept.specialRecruitment.available).map((dept) => {
-                    const isDisabled = !canSelectDepartment(dept.id, dept.specialRecruitment.available);
-                    return (
-                      <button
-                        key={dept.id}
-                        onClick={() => !isDisabled && addDepartment(dept.id, dept.name)}
-                        className={`w-full text-left px-4 py-3 border rounded-lg transition-all ${
-                          isDisabled
-                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                            : 'border-gray-200 hover:border-primary-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500'
-                        }`}
-                        disabled={isDisabled}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <span className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-800'}`}>{dept.name}</span>
-                            <span className="ml-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">特招</span>
-                          </div>
-                          {selectedDepartments.some(d => d.id === dept.id) ? (
-                            <svg className="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  
-                  {departments.filter(dept => dept.specialRecruitment.available).length === 0 && (
-                    <div className="py-10 text-center text-gray-500">
-                      没有可选择的特招部门
+            <h3 className="font-medium text-gray-800 mb-4">选择部门</h3>
+            <div className="space-y-3">
+              {filteredDepartments.map((dept) => {
+                // 判断该部门是否有特招资格
+                const hasSpecialOption = dept.specialRecruitment.available && checkSpecialEligibility(dept.id);
+                // 该部门是否已被选中
+                const isSelected = selectedDepartments.some(d => d.id === dept.id);
+
+                return (
+                  <div key={dept.id} className="border rounded-lg overflow-hidden">
+                    {/* 部门名称 */}
+                    <div className="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
+                      <span className="font-medium text-gray-800">{dept.name}</span>
+                      {isSelected && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          已选择
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
+                    
+                    {/* 招募选项 */}
+                    <div className={`p-3 ${isSelected ? 'opacity-50' : ''}`}>
+                      {/* 普通招新选项 */}
+                      <button
+                        onClick={() => !isSelected && addDepartment(dept.id, dept.name, false)}
+                        disabled={isSelected}
+                        className={`w-full text-left mb-2 px-4 py-3 border rounded-lg transition-all ${
+                          isSelected
+                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                            : 'border-gray-200 hover:border-primary-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className={`${isSelected ? 'text-gray-400' : 'text-gray-800'}`}>普通招新</span>
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </div>
+                      </button>
+                      
+                      {/* 特招选项，仅当用户符合条件时显示 */}
+                      {hasSpecialOption && (
+                        <button
+                          onClick={() => !isSelected && addDepartment(dept.id, dept.name, true)}
+                          disabled={isSelected}
+                          className={`w-full text-left px-4 py-3 border rounded-lg transition-all ${
+                            isSelected
+                              ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                              : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <span className={`${isSelected ? 'text-gray-400' : 'text-gray-800'}`}>特招通道</span>
+                              <span className="ml-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
+                                符合条件
+                              </span>
+                            </div>
+                            <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            特招可直接参加专业面试，您已符合条件
+                          </p>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card.Body>
         </Card>
+        
+        {/* 预测面试方式区域 */}
+        {selectedDepartments.length > 0 && (
+          <Card className="mb-6">
+            <Card.Body>
+              <h3 className="font-medium text-gray-800 mb-2">面试通知预览</h3>
+              <div className="p-3 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                  根据您的志愿选择，您将参加：
+                </p>
+                <p className="mt-2 font-medium">
+                  {selectedDepartments.every(dept => dept.isSpecial) ? (
+                    <span className="text-yellow-600">
+                      <span className="inline-block w-2 h-2 rounded-full bg-yellow-600 mr-1.5 align-middle"></span>
+                      特招面试（各部门单独面试）
+                    </span>
+                  ) : (
+                    <span className="text-primary-600">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary-600 mr-1.5 align-middle"></span>
+                      科联联合面试
+                    </span>
+                  )}
+                </p>
+              </div>
+            </Card.Body>
+          </Card>
+        )}
         
         <Button 
           fullWidth 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, EffectCards } from 'swiper';
 import Header from '../../components/shared/Header';
@@ -150,6 +150,24 @@ const departments: Department[] = [
 
 const DepartmentList: React.FC = () => {
   const [currentDept, setCurrentDept] = useState<Department>(departments[0]);
+  const [cardHeight, setCardHeight] = useState(460);
+
+  // 根据屏幕高度调整卡片高度
+  useEffect(() => {
+    const updateCardHeight = () => {
+      const windowHeight = window.innerHeight;
+      // 考虑到头部和底部按钮的高度，动态计算卡片区域的合适高度
+      const newHeight = Math.min(460, windowHeight - 200);
+      setCardHeight(newHeight);
+    };
+
+    // 初始设置
+    updateCardHeight();
+    
+    // 监听屏幕大小变化
+    window.addEventListener('resize', updateCardHeight);
+    return () => window.removeEventListener('resize', updateCardHeight);
+  }, []);
 
   // 处理滑动变化
   const handleSlideChange = (swiper: any) => {
@@ -168,12 +186,12 @@ const DepartmentList: React.FC = () => {
       />
       
       <div className="pt-20 px-4 pb-6 max-w-lg mx-auto">
-        <p className="text-gray-600 mb-4 text-center">
+        <p className="text-gray-600 mb-4 text-center text-sm sm:text-base">
           左右滑动了解各部门详情，选择适合你的部门
         </p>
         
         {/* 部门卡片滑动区 */}
-        <div className="mb-6 h-[460px]">
+        <div className="mb-6" style={{ height: `${cardHeight}px` }}>
           <Swiper
             modules={[Pagination, EffectCards]}
             pagination={{ 
@@ -184,22 +202,28 @@ const DepartmentList: React.FC = () => {
             grabCursor={true}
             onSlideChange={handleSlideChange}
             className="department-swiper h-full"
+            // 添加移动端触摸滑动所需参数
+            touchEventsTarget="container"
+            simulateTouch={true}
+            touchRatio={1}
+            touchAngle={45}
+            touchStartPreventDefault={false}
           >
             {departments.map((dept) => (
               <SwiperSlide key={dept.id}>
                 <div className="h-full pt-4 pb-10 px-1">
                   <div className={`bg-gradient-to-br ${dept.cardColor} text-white rounded-2xl h-full shadow-tencent overflow-hidden`}>
                     {/* 卡片顶部 */}
-                    <div className="pt-6 pb-4 px-6 border-b border-white/20">
+                    <div className="pt-4 sm:pt-6 pb-3 sm:pb-4 px-4 sm:px-6 border-b border-white/20">
                       <div className="flex items-center">
-                        <div className="bg-white/20 rounded-full p-3">
+                        <div className="bg-white/20 rounded-full p-2 sm:p-3">
                           {dept.icon}
                         </div>
-                        <div className="ml-4">
-                          <div className="flex items-center">
-                            <h2 className="text-2xl font-bold">{dept.name}</h2>
+                        <div className="ml-3 sm:ml-4">
+                          <div className="flex items-center flex-wrap">
+                            <h2 className="text-xl sm:text-2xl font-bold">{dept.name}</h2>
                             {dept.specialRecruitment && (
-                              <span className="ml-2 inline-block bg-yellow-500/20 text-white text-xs px-2 py-1 rounded-full border border-yellow-300/30">
+                              <span className="ml-2 inline-block bg-yellow-500/20 text-white text-xs px-2 py-0.5 rounded-full border border-yellow-300/30">
                                 特招通道
                               </span>
                             )}
@@ -208,29 +232,29 @@ const DepartmentList: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* 卡片内容 */}
-                    <div className="p-6 overflow-y-auto h-[320px] styled-scrollbar">
-                      <div className="mb-5">
-                        <h3 className="text-lg font-semibold mb-2 flex items-center">
-                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {/* 卡片内容 - 响应式高度调整 */}
+                    <div className="p-4 sm:p-6 overflow-y-auto styled-scrollbar" style={{ height: `${cardHeight - 100}px` }}>
+                      <div className="mb-4 sm:mb-5">
+                        <h3 className="text-base sm:text-lg font-semibold mb-1.5 sm:mb-2 flex items-center">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           部门介绍
                         </h3>
-                        <p className="text-white/90">{dept.description}</p>
+                        <p className="text-white/90 text-sm sm:text-base">{dept.description}</p>
                       </div>
                       
-                      <div className="mb-5">
-                        <h3 className="text-lg font-semibold mb-2 flex items-center">
-                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="mb-4 sm:mb-5">
+                        <h3 className="text-base sm:text-lg font-semibold mb-1.5 sm:mb-2 flex items-center">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           工作职责
                         </h3>
-                        <ul className="space-y-1.5 text-white/90">
+                        <ul className="space-y-1 sm:space-y-1.5 text-white/90 text-sm sm:text-base">
                           {dept.responsibilities.map((item, index) => (
                             <li key={index} className="flex items-center">
-                              <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                               </svg>
                               {item}
@@ -240,16 +264,16 @@ const DepartmentList: React.FC = () => {
                       </div>
                       
                       <div>
-                        <h3 className="text-lg font-semibold mb-2 flex items-center">
-                          <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h3 className="text-base sm:text-lg font-semibold mb-1.5 sm:mb-2 flex items-center">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           招新要求
                         </h3>
-                        <ul className="space-y-1.5 text-white/90">
+                        <ul className="space-y-1 sm:space-y-1.5 text-white/90 text-sm sm:text-base">
                           {dept.requirements.map((item, index) => (
                             <li key={index} className="flex items-center">
-                              <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                               </svg>
                               {item}
@@ -259,12 +283,12 @@ const DepartmentList: React.FC = () => {
                       </div>
                       
                       {dept.specialRecruitment && (
-                        <div className="mt-6 p-3 bg-yellow-400/20 border border-yellow-300/30 rounded-lg">
+                        <div className="mt-4 sm:mt-6 p-2 sm:p-3 bg-yellow-400/20 border border-yellow-300/30 rounded-lg">
                           <div className="flex items-start">
-                            <svg className="w-5 h-5 text-yellow-300 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 mr-1.5 sm:mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            <p className="text-sm text-white">
+                            <p className="text-xs sm:text-sm text-white">
                               该部门开设特招通道，符合条件的同学可直接参加特招面试，详情请在志愿填报页面查看。
                             </p>
                           </div>
@@ -325,6 +349,15 @@ const DepartmentList: React.FC = () => {
         .styled-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.3);
           border-radius: 10px;
+        }
+        /* 禁用iOS上的默认触摸行为，防止拖动问题 */
+        .department-swiper {
+          touch-action: pan-y;
+        }
+        /* 确保在移动设备上正常工作 */
+        html, body {
+          touch-action: manipulation;
+          -webkit-overflow-scrolling: touch;
         }
       `}</style>
     </div>

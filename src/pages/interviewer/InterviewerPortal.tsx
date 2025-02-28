@@ -16,7 +16,8 @@ const InterviewerPortal: React.FC = () => {
   const interviewer = {
     name: '李四',
     department: '技术部',
-    role: '面试官'
+    role: '面试官',
+    isDepartmentHead: true  // 标记是否为部长
   };
   
   // 今日统计
@@ -43,6 +44,11 @@ const InterviewerPortal: React.FC = () => {
               <div className="ml-4">
                 <h2 className="text-xl font-bold">{interviewer.name}</h2>
                 <p className="opacity-90">{interviewer.department} | {interviewer.role}</p>
+                {interviewer.isDepartmentHead && (
+                  <span className="inline-block bg-yellow-300 text-primary-800 text-xs px-2 py-0.5 rounded-full mt-1">
+                    部长权限
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -130,6 +136,51 @@ const InterviewerPortal: React.FC = () => {
               </div>
             </Card>
           </Link>
+          
+          {/* 部长专属功能 */}
+          {interviewer.isDepartmentHead && (
+            <>
+              <Link to="/interviewer/templates">
+                <Card className="transition-transform hover:scale-[1.02] active:scale-[0.98] border-l-4 border-yellow-400">
+                  <div className="flex items-center p-4">
+                    <div className="bg-amber-100 rounded-full p-3 mr-4">
+                      <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">通知模板管理</h3>
+                      <p className="text-gray-500">编辑和管理部门通知模板</p>
+                      <span className="text-xs text-amber-600">部长专属功能</span>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Card>
+              </Link>
+
+              <Link to="/interviewer/process">
+                <Card className="transition-transform hover:scale-[1.02] active:scale-[0.98] border-l-4 border-yellow-400">
+                  <div className="flex items-center p-4">
+                    <div className="bg-indigo-100 rounded-full p-3 mr-4">
+                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">面试流程设置</h3>
+                      <p className="text-gray-500">自定义部门面试流程与评分标准</p>
+                      <span className="text-xs text-amber-600">部长专属功能</span>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Card>
+              </Link>
+            </>
+          )}
         </div>
         
         {/* 待面试列表 */}

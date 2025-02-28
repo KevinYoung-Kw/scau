@@ -16,6 +16,8 @@ import QrCodeScanner from './pages/interviewer/QrCodeScanner';
 import BatchOperations from './pages/interviewer/BatchOperations';
 import InterviewEvaluation from './pages/interviewer/InterviewEvaluation';
 import InterviewerPortal from './pages/interviewer/InterviewerPortal';
+import InterviewProcessSettings from './pages/interviewer/InterviewProcessSettings';
+import NotificationTemplates from './pages/interviewer/NotificationTemplates';
 
 // 首页和导航页
 import Home from './pages/Home';
@@ -46,6 +48,8 @@ const App: React.FC = () => {
             {/* 面试官端页面 */}
             <Route path="/interviewer" element={<InterviewerPortal />} />
             <Route path="/interviewer/qrcode" element={<QrCodeScanner />} />
+            <Route path="/interviewer/process" element={<InterviewProcessSettings />} />
+            <Route path="/interviewer/templates" element={<NotificationTemplates />} />
             <Route path="/interviewer/batch" element={<BatchOperations />} />
             <Route path="/interviewer/evaluate" element={<InterviewEvaluation />} />
           </Routes>
